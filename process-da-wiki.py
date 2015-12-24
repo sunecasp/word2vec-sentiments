@@ -1,4 +1,5 @@
-# gensim modules
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import gensim
 from gensim import utils
 from gensim.models.doc2vec import LabeledSentence
@@ -36,20 +37,11 @@ class LabeledLineSentence(object):
             else:
                 raise Exception('Non-unique prefix encountered')
 
-#==============================================================================
-#     def __iter__(self):
-#         for source, prefix in self.sources.items():
-#             with utils.smart_open(source) as fin:
-#                 for item_no, line in enumerate(fin):
-#                     yield LabeledSentence(utils.to_unicode(line).split(), [prefix + '_%s' % item_no])
-#==============================================================================
-
     def __iter__(self):
         for source, prefix in self.sources.items():
             with utils.smart_open(source) as fin:
                 for item_no, line in enumerate(fin):
-                    yield LabeledSentence(
-                        self.transform[utils.to_unicode(line).split()], [prefix + "_%s" % item_no])
+                    yield LabeledSentence(utils.to_unicode(line).split(), [prefix + '_%s' % item_no])
 
     def to_array(self):
         self.sentences = []
@@ -82,39 +74,22 @@ class LabeledLineSentence(object):
         
         return self.sentences
         
-    def build_bigrams(self):
-        self.phrases = []
-        for source, prefix in self.sources.items():
-            with utils.smart_open(source) as fin:
-                for item_no, line in enumerate(fin):
-                    self.phrases.append(utils.to_unicode(line).split())
-        self.transform = gensim.models.Phrases(self.phrases)
-
-        del self.phrases
-        
-
-sources = {'test-neg.txt':'TEST_NEG', 'test-pos.txt':'TEST_POS', 'train-neg.txt':'TRAIN_NEG', 'train-pos.txt':'TRAIN_POS', 'train-unsup.txt':'TRAIN_UNS'}
+sources = {"wiki-corpus.txt":"UNSUP"}
 
 sentences = LabeledLineSentence(sources)
 
-model = Doc2Vec(min_count=1, window=10, size=100, sample=1e-4, negative=5, workers=7)
+model = Doc2Vec(min_count=1, window=12, size=800, sample=1e-4, negative=5, workers=2)
 
-#model.build_vocab(sentences.to_array())
+model.build_vocab(sentences.to_array())
 #model.build_vocab(sentences.bigrams())
-sentences.build_bigrams()
-model.build_vocab(sentences)
 
 for epoch in range(10):
     logger.info('Epoch %d' % epoch)
     model.train(sentences.sentences_perm())
+    
+model.save('./da-wiki.d2v')
+#model = Doc2Vec.load('./da-wiki.d2v')
 
-model.save('./imdb.d2v')
-model = Doc2Vec.load('./imdb.d2v')
+#model.init_sims(replace = True)
 
-model.doesnt_match('good bad morning great'.split())
-
-model.most_similar(positive=["spoke", "eat"], negative=["speak"])
-
-inferred = model.infer_vector("I had a wonderful steak this morning".split())
-
-model.most_similar(positive=["interesting"])
+#model.most_similar(positive=u"hillerød århus".split(), negative=u"lyngby".split())
